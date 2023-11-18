@@ -87,17 +87,15 @@ def search_for_album():
         album = release["title"]
         release_json = json.dumps(release)
 
+        # TODO: Only store releases for existing album art
         insert_data(mbid, release_json, album, artist)
         downloadAlbumArt(release["id"])
 
-    files = os.listdir("../static/album-art/")
-    mbids = [release["id"] for release in releases]
+    #files = os.listdir("../static/album-art/")
+    #mbids = [release["id"] for release in releases]
 
-    existing_files = [f for f in files if f.replace(".jpg", "") in mbids]
-    return jsonify({
-        "data": releases,
-        "existing_files": existing_files
-    })
+    #existing_files = [f for f in files if f.replace(".jpg", "") in mbids]
+    return jsonify(releases)
 
 
 @app.route("/album-art/<path:filename>")

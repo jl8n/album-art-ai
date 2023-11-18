@@ -1,7 +1,15 @@
 <script lang="ts">
     import { onMount } from "svelte";
 
-    let data: string[] | undefined;
+    interface Release {
+        id: string;
+        "artist-credit": {
+            name: string;
+        }[];
+        title: string;
+    }
+
+    let data: Release[];
     let album = "";
     let artist = "";
 
@@ -39,13 +47,14 @@
 {#if data}
     <h2>Choose the best image:</h2>
     <div class="flex">
-        {#each data as filename (filename)}
+        {#each data as release (release)}
             <button>
                 <img
-                    src="http://localhost:5000/album-art/{filename}"
-                    alt={filename}
+                    src="http://localhost:5000/album-art/{release.id}.jpg"
+                    alt={release.title}
                 />
             </button>
+            <span>{release["artist-credit"][0].name} - {release.title}</span>
         {/each}
     </div>
 {/if}
