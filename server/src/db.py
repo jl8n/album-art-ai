@@ -5,25 +5,44 @@ import json
 
 def insert_data(mbid: str, data: str, album: str, artist: str) -> None:
     conn = psycopg2.connect(
-        dbname="musicbrainz_results",
+        dbname="musicbrainz",
         user="postgres",
         password="example",
         host="localhost",
         port="5432"
     )
-
     cur = conn.cursor()
 
-    insert_statement = sql.SQL(
+    # Upsert artist
+    cur.execute(
         """
-        INSERT INTO releases (mbid, album, artist, data) 
-        VALUES (%s, %s, %s, %s)
-        ON CONFLICT (mbid) DO NOTHING
-        """
+        INSERT INTO artists (name) VALUES (%s)
+        ON CONFLICT (name) DO NOTHING;
+        """,
+        (artist,)
     )
 
-    # Execute SQL command
-    cur.execute(insert_statement, (mbid, album, artist, data))
+    # Upsert album
+    cur.execute(
+        """
+        INSERT INTO albums (title, artist_id)
+        SELECT %s, artist_id FROM artists WHERE name = %s
+        ON CONFLICT (title, artist_id) DO NOTHING;
+        """,
+        (album, artist)
+    )
+
+    # Insert release
+    cur.execute(
+        """
+        INSERT INTO releases (mbid, album_id, release_data)
+        SELECT %s, album_id, %s FROM albums
+        INNER JOIN artists ON albums.artist_id = artists.artist_id
+        WHERE albums.title = %s AND artists.name = %s
+        ON CONFLICT (mbid) DO NOTHING;
+        """,
+        (mbid, data, album, artist)
+    )
 
     # Commit changes to the database
     conn.commit()

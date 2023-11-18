@@ -22,21 +22,7 @@ def get_musicbrainz_results(artist: str, album: str) -> list[str]:
     response = requests.get(api_url)
     data = response.json()
 
-    releases = data["releases"]
-    releases_json = []
-    #mbids = []
-    #releases_json = [json.dumps(release) for release in releases]
-
-    for release in releases:
-        mbid = release["id"]
-        #mbids.append(mbid)
-        release_json = json.dumps(release)
-        releases_json.append(release_json)
-
-        # Insert mbid and release data in db
-        insert_data(mbid, release_json, album, artist)
-        
-    return releases
+    return data["releases"]
 
 
 def downloadImage(image_url: str, mbid: str) -> bool:
@@ -96,6 +82,12 @@ def search_for_album():
     releases = get_musicbrainz_results(artist, album)
 
     for release in releases:
+        mbid = release["id"]
+        artist = release["artist-credit"][0]["artist"]["name"]
+        album = release["title"]
+        release_json = json.dumps(release)
+
+        insert_data(mbid, release_json, album, artist)
         downloadAlbumArt(release["id"])
 
     files = os.listdir("../static/album-art/")
