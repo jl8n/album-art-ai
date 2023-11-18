@@ -1,15 +1,19 @@
+from db import insert_data
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS, cross_origin
 import requests
 from urllib.parse import urlencode
 import os
+import pprint
+import json
+
 
 app = Flask(__name__)
 cors = CORS(app)
 app.config["CORS_HEADERS"] = "Content-Type"
 
 
-def getCandidateMBIDs(artist: str, album: str) -> list[str]:
+def get_musicbrainz_results(artist: str, album: str) -> list[str]:
     query = f"artist:{artist} AND release:{album}"
     params = urlencode({"query": query, "fmt": "json", "limit": 5})
 
@@ -18,9 +22,21 @@ def getCandidateMBIDs(artist: str, album: str) -> list[str]:
     response = requests.get(api_url)
     data = response.json()
 
-    # Extract the MBIDs from the releases
-    mbids = [release["id"] for release in data["releases"]]
-    return mbids
+    releases = data["releases"]
+    releases_json = []
+    #mbids = []
+    #releases_json = [json.dumps(release) for release in releases]
+
+    for release in releases:
+        mbid = release["id"]
+        #mbids.append(mbid)
+        release_json = json.dumps(release)
+        releases_json.append(release_json)
+
+        # Insert mbid and release data in db
+        insert_data(mbid, release_json, album, artist)
+        
+    return releases
 
 
 def downloadImage(image_url: str, mbid: str) -> bool:
@@ -77,14 +93,19 @@ def search_for_album():
     album = request.args.get("album", default="", type=str)
 
     print(f"artist: {artist}\nalbum: {album}")
-    mbids = getCandidateMBIDs(artist, album)
+    releases = get_musicbrainz_results(artist, album)
 
-    for mbid in mbids:
-        downloadAlbumArt(mbid)
+    for release in releases:
+        downloadAlbumArt(release["id"])
 
     files = os.listdir("../static/album-art/")
+    mbids = [release["id"] for release in releases]
+
     existing_files = [f for f in files if f.replace(".jpg", "") in mbids]
-    return jsonify(existing_files)
+    return jsonify({
+        "data": releases,
+        "existing_files": existing_files
+    })
 
 
 @app.route("/album-art/<path:filename>")
