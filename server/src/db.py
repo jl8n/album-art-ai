@@ -1,5 +1,6 @@
 import psycopg2
 from psycopg2 import sql
+import json
 
 
 def insert_data(mbid: str, data: str, album: str, artist: str) -> None:
@@ -31,10 +32,6 @@ def insert_data(mbid: str, data: str, album: str, artist: str) -> None:
     cur.close()
     conn.close()
 
-
-import psycopg2
-from psycopg2 import sql
-import json
 
 def get_data(mbid: str) -> str:
     # Define your connection parameters
